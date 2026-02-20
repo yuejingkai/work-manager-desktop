@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作管理台</title>
+<style>
+:root {
+  --bg:#0e0e12;--surface:#16161e;--surface2:#1e1e2a;--surface3:#252535;
+  --border:#2a2a3e;--text:#e8e8f0;--text-dim:#8888aa;--text-muted:#55556a;
+  --accent:#7c6af7;--accent-glow:rgba(124,106,247,0.18);
+  --cat-research:#5bc4d4;--cat-teaching:#f79a5b;--cat-college:#5bd47c;
+  --cat-social:#d45b9a;--cat-parttime:#d4c25b;--cat-personal:#a07cf7;
+  --q1:#ff6b6b;--q2:#f7a35b;--q3:#5ba3f7;--q4:#777;
+  --red:#ff6b6b;--green:#5bd47c;--radius:12px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family: ui-serif, 'Noto Serif SC', 'STSong', 'Songti SC', 'SimSun', serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.5;}
+.app{display:flex;min-height:100vh;}
+/* SIDEBAR */
+.sidebar{width:256px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;}
+.sidebar-logo{padding:24px 20px 18px;border-bottom:1px solid var(--border);}
+.logo-title{font-size:17px;font-weight:700;letter-spacing:.04em;}
+.logo-sub{font-size:10px;color:var(--text-muted);font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;margin-top:3px;}
+.sidebar-section{padding:18px 16px 6px;font-size:9px;letter-spacing:.18em;color:var(--text-muted);font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;text-transform:uppercase;}
+.sidebar-item{display:flex;align-items:center;gap:9px;padding:9px 14px;margin:1px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:all .18s;font-size:13px;color:var(--text-dim);}
+.sidebar-item:hover{background:var(--surface2);color:var(--text);}
+.sidebar-item.active{background:var(--accent-glow);color:var(--accent);}
+.sidebar-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sidebar-count{margin-left:auto;font-size:10px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;color:var(--text-muted);background:var(--surface3);padding:1px 6px;border-radius:10px;}
+.sidebar-item.active .sidebar-count{background:var(--accent-glow);color:var(--accent);}
+.sidebar-trash{color:var(--red)!important;}
+.sidebar-trash.active{background:rgba(255,107,107,.1)!important;color:var(--red)!important;}
+.sidebar-trash.active .sidebar-count{background:rgba(255,107,107,.15);color:var(--red);}
+/* MAIN */
+.main{margin-left:256px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 28px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;}
+.header-title{font-size:19px;font-weight:500;}
+.header-date{font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;font-size:11px;color:var(--text-muted);}
+.header-actions{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.btn{padding:7px 16px;border-radius:var(--radius-sm);font-size:13px;font-family: ui-serif, 'Noto Serif SC', 'STSong', 'Songti SC', 'SimSun', serif;cursor:pointer;border:none;transition:all .2s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{opacity:.85;transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);}
+.btn-danger{background:rgba(255,107,107,.15);color:var(--red);border:1px solid rgba(255,107,107,.3);}
+.btn-danger:hover{background:rgba(255,107,107,.25);}
+.btn-sm{padding:4px 10px;font-size:11px;}
+/* FILTER */
+.filter-bar{padding:12px 28px;border-bottom:1px solid var(--border);display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.filter-chip{padding:4px 13px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .18s;font-family: ui-serif, 'Noto Serif SC', 'STSong', 'Songti SC', 'SimSun', serif;}
+.filter-chip:hover{border-color:var(--accent);color:var(--text);}
+.filter-chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.filter-sep{width:1px;height:22px;background:var(--border);margin:0 2px;}
+/* CONTENT */
+.content{padding:24px 28px;flex:1;}
+/* STATS */
+.stats-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--ac,var(--accent));opacity:.5;}
+.stat-value{font-size:26px;font-weight:700;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;}
+.stat-label{font-size:10px;color:var(--text-muted);margin-top:2px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;letter-spacing:.05em;}
+.stat-mini{font-size:10px;color:var(--text-muted);margin-top:6px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;}
+/* CAT BREAKDOWN */
+.cat-breakdown{display:flex;height:5px;border-radius:4px;overflow:hidden;margin-bottom:20px;gap:2px;}
+.cat-bar-seg{height:100%;border-radius:2px;transition:flex .4s ease;cursor:pointer;min-width:3px;}
+/* VIEW TOGGLE */
+.view-toggle{display:flex;gap:2px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;}
+.view-btn{padding:4px 11px;border-radius:6px;font-size:11px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;cursor:pointer;border:none;color:var(--text-muted);background:transparent;transition:all .18s;}
+.view-btn.active{background:var(--surface3);color:var(--text);}
+/* LIST */
+.list-view{display:flex;flex-direction:column;gap:9px;}
+/* TASK CARD */
+.task-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;transition:all .2s;position:relative;overflow:hidden;}
+.task-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+.task-card.cat-research::before{background:var(--cat-research);}
+.task-card.cat-teaching::before{background:var(--cat-teaching);}
+.task-card.cat-college::before{background:var(--cat-college);}
+.task-card.cat-social::before{background:var(--cat-social);}
+.task-card.cat-parttime::before{background:var(--cat-parttime);}
+.task-card.cat-personal::before{background:var(--cat-personal);}
+.task-card:hover{border-color:var(--surface3);transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,0,0,.3);}
+.task-card.done{opacity:.42;}
+.task-card.done .task-title{text-decoration:line-through;}
+.task-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:8px;}
+.task-check{width:17px;height:17px;border:1.5px solid var(--border);border-radius:5px;flex-shrink:0;margin-top:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;background:transparent;}
+.task-check:hover{border-color:var(--accent);}
+.task-card.done .task-check{background:var(--accent);border-color:var(--accent);}
+.task-check svg{display:none;}
+.task-card.done .task-check svg{display:block;}
+.task-title{font-size:13.5px;font-weight:500;flex:1;line-height:1.4;cursor:pointer;}
+.task-title:hover{color:var(--accent);}
+.task-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s;flex-shrink:0;}
+.task-card:hover .task-actions{opacity:1;}
+.task-action-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:12px;}
+.task-action-btn:hover{background:var(--surface3);color:var(--text);}
+.task-action-btn.del:hover{background:rgba(255,107,107,.15);color:var(--red);border-color:rgba(255,107,107,.3);}
+.task-action-btn.restore:hover{background:rgba(91,212,124,.15);color:var(--green);border-color:rgba(91,212,124,.3);}
+.task-priority{font-size:10px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;padding:2px 7px;border-radius:4px;flex-shrink:0;align-self:flex-start;}
+.p1{background:rgba(255,107,107,.15);color:var(--q1);}
+.p2{background:rgba(247,163,91,.15);color:var(--q2);}
+.p3{background:rgba(91,163,247,.15);color:var(--q3);}
+.p4{background:rgba(119,119,119,.15);color:var(--q4);}
+.task-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
+.meta-tag{font-size:11px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;color:var(--text-muted);display:flex;align-items:center;gap:4px;}
+.cat-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+.task-deadline.urgent{color:var(--q1);}
+.task-deadline.soon{color:var(--q2);}
+.task-collaborators{display:flex;align-items:center;}
+.collab-avatar{width:19px;height:19px;border-radius:50%;background:var(--accent);font-size:8px;display:flex;align-items:center;justify-content:center;color:#fff;border:1.5px solid var(--surface);margin-left:-4px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;}
+.collab-avatar:first-child{margin-left:0;}
+.tag-multiday{font-size:10px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;padding:2px 6px;border-radius:4px;background:rgba(124,106,247,.15);color:var(--accent);}
+.tag-single{font-size:10px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;padding:2px 6px;border-radius:4px;background:var(--surface3);color:var(--text-muted);}
+/* TIME PROGRESS */
+.time-progress-wrap{margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}
+.tp-row{display:flex;justify-content:space-between;font-size:10px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;color:var(--text-muted);margin-bottom:4px;}
+.tp-track{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;position:relative;margin-bottom:7px;}
+.tp-fill{height:100%;border-radius:3px;transition:width .4s ease;}
+.tp-task-fill{height:4px;border-radius:2px;transition:width .3s;}
+.tp-labels{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.tp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+/* MATRIX */
+.matrix-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.matrix-quadrant{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;overflow:hidden;max-height:440px;}
+.quadrant-header{padding:12px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.quadrant-badge{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+.q1 .quadrant-badge{background:var(--q1);}.q2 .quadrant-badge{background:var(--q2);}
+.q3 .quadrant-badge{background:var(--q3);}.q4 .quadrant-badge{background:var(--q4);}
+.quadrant-label{font-size:13px;font-weight:500;flex:1;}
+.quadrant-sublabel{font-size:10px;color:var(--text-muted);font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;}
+.quadrant-body{flex:1;overflow-y:auto;padding:8px;}
+/* GANTT */
+.gantt-wrap{overflow-x:auto;padding-bottom:12px;}
+.gantt-header-row{display:flex;margin-left:220px;}
+.gantt-day{font-size:9px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;color:var(--text-muted);text-align:center;border-left:1px solid var(--border);padding:3px 0;flex-shrink:0;}
+.gantt-day.is-today{color:var(--accent);font-weight:700;}
+.gantt-day.is-weekend{opacity:.4;}
+.gantt-month-row{display:flex;margin-left:220px;margin-bottom:2px;}
+.gantt-month{font-size:9px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;color:var(--accent);opacity:.6;flex-shrink:0;overflow:hidden;}
+.gantt-row{display:flex;align-items:center;margin-bottom:5px;}
+.gantt-label{width:220px;flex-shrink:0;font-size:12px;padding:0 8px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px;height:28px;}
+.gantt-track{position:relative;display:flex;height:28px;flex-shrink:0;}
+.gantt-cell{border-left:1px solid var(--border);height:100%;flex-shrink:0;}
+.gantt-cell.is-today{border-left:1px solid rgba(124,106,247,.5);}
+.gantt-cell.is-weekend{background:rgba(255,255,255,.01);}
+.gantt-bar{position:absolute;top:4px;height:20px;border-radius:5px;display:flex;align-items:center;padding:0 7px;font-size:10px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;color:rgba(255,255,255,.85);overflow:hidden;white-space:nowrap;cursor:pointer;transition:opacity .15s;z-index:2;}
+.gantt-bar:hover{opacity:.78;}
+.gantt-bar-inner{position:absolute;top:0;left:0;height:100%;border-radius:5px;background:rgba(0,0,0,.22);pointer-events:none;}
+.gantt-bar-text{position:relative;z-index:1;}
+.gantt-today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);z-index:5;pointer-events:none;opacity:.7;}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:580px;max-width:96vw;max-height:92vh;overflow-y:auto;animation:slideUp .22s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.modal-header{padding:22px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:16px;font-weight:600;}
+.modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;line-height:1;transition:color .15s;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:18px 22px;display:flex;flex-direction:column;gap:14px;}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.modal-footer-right{display:flex;gap:8px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-label{font-size:11px;color:var(--text-muted);font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;letter-spacing:.08em;text-transform:uppercase;}
+.form-input,.form-select,.form-textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 13px;color:var(--text);font-size:13px;font-family: ui-serif, 'Noto Serif SC', 'STSong', 'Songti SC', 'SimSun', serif;transition:border-color .18s;outline:none;width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-select option{background:var(--surface2);}
+.form-textarea{resize:vertical;min-height:65px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.priority-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.priority-btn{padding:9px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:transparent;color:var(--text-dim);font-size:12px;font-family: ui-serif, 'Noto Serif SC', 'STSong', 'Songti SC', 'SimSun', serif;cursor:pointer;transition:all .18s;text-align:center;}
+.priority-btn:hover{border-color:var(--accent);color:var(--text);}
+.priority-btn.selected.p1{background:rgba(255,107,107,.18);border-color:var(--q1);color:var(--q1);}
+.priority-btn.selected.p2{background:rgba(247,163,91,.18);border-color:var(--q2);color:var(--q2);}
+.priority-btn.selected.p3{background:rgba(91,163,247,.18);border-color:var(--q3);color:var(--q3);}
+.priority-btn.selected.p4{background:rgba(119,119,119,.18);border-color:var(--q4);color:var(--q4);}
+.collab-input-row{display:flex;gap:7px;}
+.collab-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+.collab-tag{background:var(--surface3);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:5px;}
+.collab-tag-remove{cursor:pointer;color:var(--text-muted);font-size:13px;line-height:1;}
+.collab-tag-remove:hover{color:var(--red);}
+/* TOAST */
+.toast-container{position:fixed;bottom:28px;right:28px;z-index:9000;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 18px;font-size:13px;display:flex;align-items:center;gap:10px;pointer-events:all;animation:toastIn .25s ease;min-width:240px;max-width:340px;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.toast-undo{margin-left:auto;font-size:11px;color:var(--accent);cursor:pointer;padding:2px 8px;border-radius:4px;border:1px solid var(--accent-glow);background:var(--accent-glow);white-space:nowrap;flex-shrink:0;}
+.toast-undo:hover{background:var(--accent);color:#fff;}
+/* EMPTY */
+.empty-state{text-align:center;padding:40px;color:var(--text-muted);font-size:13px;}
+.empty-icon{font-size:32px;margin-bottom:10px;}
+/* TRASH BANNER */
+.trash-banner{background:rgba(255,107,107,.06);border:1px dashed rgba(255,107,107,.25);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text-muted);}
+.trash-banner em{color:var(--red);font-style:normal;}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-title">工作管理台</div>
+      <div class="logo-sub" id="sidebarDate"></div>
+    </div>
+    <div class="sidebar-section">视图</div>
+    <div class="sidebar-item active" onclick="switchView('all',this)">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      全部任务<span class="sidebar-count" id="count-all">0</span>
+    </div>
+    <div class="sidebar-item" onclick="switchView('today',this)">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      今日任务<span class="sidebar-count" id="count-today">0</span>
+    </div>
+    <div class="sidebar-item" onclick="switchView('urgent',this)">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      紧急事项<span class="sidebar-count" id="count-urgent">0</span>
+    </div>
+    <div class="sidebar-item" onclick="switchView('matrix',this)">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+      四象限矩阵
+    </div>
+    <div class="sidebar-item" onclick="switchView('gantt',this)">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="15" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="11" y2="18"/></svg>
+      时间轴甘特图
+    </div>
+    <div class="sidebar-section">分类</div>
+    <div class="sidebar-item" onclick="switchCat('research',this)"><span class="sidebar-dot" style="background:var(--cat-research)"></span>科学研究<span class="sidebar-count" id="count-research">0</span></div>
+    <div class="sidebar-item" onclick="switchCat('teaching',this)"><span class="sidebar-dot" style="background:var(--cat-teaching)"></span>教育教学<span class="sidebar-count" id="count-teaching">0</span></div>
+    <div class="sidebar-item" onclick="switchCat('college',this)"><span class="sidebar-dot" style="background:var(--cat-college)"></span>学院工作<span class="sidebar-count" id="count-college">0</span></div>
+    <div class="sidebar-item" onclick="switchCat('social',this)"><span class="sidebar-dot" style="background:var(--cat-social)"></span>社会服务<span class="sidebar-count" id="count-social">0</span></div>
+    <div class="sidebar-item" onclick="switchCat('parttime',this)"><span class="sidebar-dot" style="background:var(--cat-parttime)"></span>兼职工作<span class="sidebar-count" id="count-parttime">0</span></div>
+    <div class="sidebar-item" onclick="switchCat('personal',this)"><span class="sidebar-dot" style="background:var(--cat-personal)"></span>私人事宜<span class="sidebar-count" id="count-personal">0</span></div>
+    <div class="sidebar-section">其他</div>
+    <div class="sidebar-item sidebar-trash" onclick="switchView('trash',this)">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+      回收站<span class="sidebar-count" id="count-trash">0</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="header">
+      <div>
+        <div class="header-title" id="headerTitle">全部任务</div>
+        <div class="header-date" id="headerDate"></div>
+      </div>
+      <div class="header-actions">
+        <div class="view-toggle">
+          <button class="view-btn active" onclick="setDisplayMode('list',this)">列表</button>
+          <button class="view-btn" onclick="setDisplayMode('matrix',this)">矩阵</button>
+          <button class="view-btn" onclick="setDisplayMode('gantt',this)">甘特</button>
+        </div>
+        <button class="btn btn-primary" id="addTaskBtn" onclick="openModal()">＋ 新增任务</button>
+      </div>
+    </header>
+
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-chip active" onclick="setFilter('all',this)">全部</button>
+      <button class="filter-chip" onclick="setFilter('pending',this)">进行中</button>
+      <button class="filter-chip" onclick="setFilter('done',this)">已完成</button>
+      <div class="filter-sep"></div>
+      <button class="filter-chip" onclick="setFilter('today-only',this)">当天任务</button>
+      <button class="filter-chip" onclick="setFilter('multiday',this)">多天项目</button>
+      <div class="filter-sep"></div>
+      <button class="filter-chip" onclick="setFilter('collab',this)">有协作</button>
+      <button class="filter-chip" onclick="setFilter('overdue',this)">已逾期</button>
+    </div>
+
+    <div class="content" id="mainContent"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">新增任务</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">任务标题 *</label>
+        <input class="form-input" id="fTitle" placeholder="请输入任务名称..."/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">描述（可选）</label>
+        <textarea class="form-textarea" id="fDesc" placeholder="任务详情、备注..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">所属分类</label>
+          <select class="form-select" id="fCat">
+            <option value="research">科学研究</option>
+            <option value="teaching">教育教学</option>
+            <option value="college">学院工作</option>
+            <option value="social">社会服务</option>
+            <option value="parttime">兼职工作</option>
+            <option value="personal">私人事宜</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">时间类型</label>
+          <select class="form-select" id="fDurationType" onchange="toggleDuration()">
+            <option value="single">当天完成</option>
+            <option value="multi">多天项目</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">开始日期</label>
+          <input class="form-input" type="date" id="fStartDate"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">截止日期</label>
+          <input class="form-input" type="date" id="fDeadline"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">优先级（四象限）</label>
+        <div class="priority-grid">
+          <button class="priority-btn p1 selected" onclick="selectPriority('p1',this)">🔴 重要且紧急</button>
+          <button class="priority-btn p2" onclick="selectPriority('p2',this)">🟠 重要不紧急</button>
+          <button class="priority-btn p3" onclick="selectPriority('p3',this)">🔵 紧急不重要</button>
+          <button class="priority-btn p4" onclick="selectPriority('p4',this)">⚪ 不紧急不重要</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">协作成员</label>
+        <input class="form-input" id="fCollabInput" placeholder="输入姓名后按回车添加..." onkeydown="addCollab(event)"/>
+        <div class="collab-tags" id="fCollabTags"></div>
+      </div>
+      <div class="form-group" id="progressField" style="display:none">
+        <label class="form-label">任务完成进度（<span id="progressVal">0</span>%）</label>
+        <input type="range" id="fProgress" min="0" max="100" value="0" style="width:100%;accent-color:var(--accent)" oninput="document.getElementById('progressVal').textContent=this.value">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="deleteBtn" onclick="deleteFromModal()" style="display:none">🗑 移入回收站</button>
+      <div class="modal-footer-right">
+        <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveTask()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ============ DATA ============
+// 本应用默认使用 localStorage 做本地持久化：不需要服务器，但也意味着“只在当前设备/浏览器生效”。
+// 在 iOS 无痕模式、部分内嵌浏览器、或直接以 file:// 打开时，localStorage 可能被禁用/不持久化。
+let storageOK = true;
+function storageGet(key, fallback=null){
+  try { const v = localStorage.getItem(key); return v===null ? fallback : v; }
+  catch(e){ storageOK = false; return fallback; }
+}
+function storageSet(key, value){
+  try { localStorage.setItem(key, value); return true; }
+  catch(e){ storageOK = false; return false; }
+}
+
+let tasks = JSON.parse(storageGet('wm_tasks_v4', '[]'));
+let trash = JSON.parse(storageGet('wm_trash_v4', '[]'));
+
+// 用于控制“示例数据只加载一次”，避免用户清空后又反复回到示例数据
+let hasInited = storageGet('wm_inited_v1', '0') === '1';
+
+let editId = null, selPriority = 'p1', collabs = [];
+let curView = 'all', curCat = null, curFilter = 'all', dispMode = 'list';
+
+const CAT = { research:'科学研究', teaching:'教育教学', college:'学院工作', social:'社会服务', parttime:'兼职工作', personal:'私人事宜' };
+const CATC = { research:'var(--cat-research)', teaching:'var(--cat-teaching)', college:'var(--cat-college)', social:'var(--cat-social)', parttime:'var(--cat-parttime)', personal:'var(--cat-personal)' };
+const PORD = { p1:0, p2:1, p3:2, p4:3 };
+
+function persist() {
+  // 先尝试写入存储；失败时给出明确提示（否则用户会以为“保存按钮没反应”）
+  const ok1 = storageSet('wm_tasks_v4', JSON.stringify(tasks));
+  const ok2 = storageSet('wm_trash_v4', JSON.stringify(trash));
+  if (ok1 && ok2) storageSet('wm_inited_v1', '1');
+
+  if (!ok1 || !ok2) {
+    toast('⚠️', '当前环境禁止/不持久化本地存储（无痕模式/内嵌浏览器/直接打开文件）。建议用 https 方式访问或关闭无痕模式。');
+  }
+
+  render(); updateCounts();
+}
+
+// ============ DATES ============
+function today() { return new Date().toISOString().split('T')[0]; }
+function toDate(s) { return s ? new Date(s + 'T00:00:00') : null; }
+function daysUntil(d) { if (!d) return null; return Math.round((toDate(d) - toDate(today())) / 86400000); }
+function fmtDate(d) { if (!d) return ''; const dd = toDate(d); return `${dd.getMonth()+1}月${dd.getDate()}日`; }
+function addDays(s, n) { const d = toDate(s); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; }
+function timePct(start, end) {
+  if (!start || !end) return null;
+  const s = toDate(start), e = toDate(end), now = toDate(today());
+  const total = (e - s) / 86400000;
+  if (total <= 0) return 100;
+  return Math.min(100, Math.max(0, Math.round((now - s) / 86400000 / total * 100)));
+}
+
+function initUI() {
+  const now = new Date();
+  document.getElementById('headerDate').textContent = now.toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+  document.getElementById('sidebarDate').textContent = today();
+  document.getElementById('fStartDate').value = today();
+  document.getElementById('fDeadline').value = today();
+}
+
+// ============ MODAL ============
+function openModal(id=null) {
+  editId = id; collabs = []; selPriority = 'p1';
+  if (id) {
+    const t = [...tasks, ...trash].find(x => x.id === id);
+    if (!t) return;
+    document.getElementById('modalTitle').textContent = '编辑任务';
+    document.getElementById('fTitle').value = t.title;
+    document.getElementById('fDesc').value = t.desc || '';
+    document.getElementById('fCat').value = t.cat;
+    document.getElementById('fDurationType').value = t.durationType;
+    document.getElementById('fStartDate').value = t.startDate || today();
+    document.getElementById('fDeadline').value = t.deadline || today();
+    document.getElementById('fProgress').value = t.progress || 0;
+    document.getElementById('progressVal').textContent = t.progress || 0;
+    selPriority = t.priority;
+    collabs = [...(t.collabs || [])];
+    document.getElementById('deleteBtn').style.display = t.deleted ? 'none' : 'block';
+  } else {
+    document.getElementById('modalTitle').textContent = '新增任务';
+    document.getElementById('fTitle').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('fCat').value = curCat || 'research';
+    document.getElementById('fDurationType').value = 'single';
+    document.getElementById('fStartDate').value = today();
+    document.getElementById('fDeadline').value = today();
+    document.getElementById('fProgress').value = 0;
+    document.getElementById('progressVal').textContent = 0;
+    document.getElementById('deleteBtn').style.display = 'none';
+  }
+  toggleDuration(); renderPBtns(); renderCTags();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); editId = null; }
+function closeModalBg(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+function toggleDuration() {
+  document.getElementById('progressField').style.display = document.getElementById('fDurationType').value === 'multi' ? 'block' : 'none';
+}
+function selectPriority(p) { selPriority = p; renderPBtns(); }
+function renderPBtns() {
+  document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.priority-btn')[{p1:0,p2:1,p3:2,p4:3}[selPriority]].classList.add('selected');
+}
+function addCollab(e) {
+  if (e.key !== 'Enter') return;
+  const v = e.target.value.trim(); if (!v) return;
+  if (!collabs.includes(v)) collabs.push(v);
+  e.target.value = ''; renderCTags();
+}
+function removeCollab(name) { collabs = collabs.filter(c => c !== name); renderCTags(); }
+function renderCTags() {
+  document.getElementById('fCollabTags').innerHTML = collabs.map(c =>
+    `<div class="collab-tag">${c}<span class="collab-tag-remove" onclick="removeCollab('${c}')">×</span></div>`).join('');
+}
+function saveTask() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) { alert('请输入任务标题'); return; }
+  const task = {
+    id: editId || Date.now().toString(), title,
+    desc: document.getElementById('fDesc').value.trim(),
+    cat: document.getElementById('fCat').value,
+    durationType: document.getElementById('fDurationType').value,
+    startDate: document.getElementById('fStartDate').value,
+    deadline: document.getElementById('fDeadline').value,
+    priority: selPriority, collabs: [...collabs],
+    progress: parseInt(document.getElementById('fProgress').value),
+    done: editId ? (tasks.find(x=>x.id===editId)||{}).done||false : false,
+    createdAt: editId ? (tasks.find(x=>x.id===editId)||{}).createdAt||Date.now() : Date.now()
+  };
+  if (editId) tasks = tasks.map(t => t.id === editId ? task : t);
+  else tasks.push(task);
+  const isNew = !editId;
+
+  // 如果当前筛选/视图会把新任务“藏起来”，用户会误以为没保存：这里自动切回「全部」筛选
+  if (isNew) {
+    const wouldShow = getFiltered().some(x => x.id === task.id);
+    if (!wouldShow) {
+      // reset filter to all
+      curFilter = 'all';
+      const chips = document.querySelectorAll('.filter-chip');
+      chips.forEach(c => c.classList.remove('active'));
+      if (chips[0]) chips[0].classList.add('active');
+      // reset view to all (只在确实看不到时才切换，避免打断用户工作流)
+      if (!['all','cat'].includes(curView)) {
+        curView = 'all'; curCat = null; dispMode = 'list'; syncVBtns('list');
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        const first = document.querySelectorAll('.sidebar-item')[0];
+        if (first) first.classList.add('active');
+        document.getElementById('headerTitle').textContent = '全部任务';
+        document.getElementById('filterBar').style.display = '';
+        document.getElementById('addTaskBtn').style.display = '';
+      }
+      toast('ℹ️', '已创建任务：为避免被筛选隐藏，已自动切回「全部任务 / 全部」');
+    }
+  }
+
+  persist(); closeModal();
+  toast('✅', editId ? '任务已更新' : '任务已创建');
+}
+
+// ============ DELETE / RESTORE ============
+function deleteFromModal() {
+  if (!editId) return;
+  const id = editId; closeModal(); softDelete(id);
+}
+function softDelete(id) {
+  const t = tasks.find(x => x.id === id); if (!t) return;
+  const copy = { ...t, deleted:true, deletedAt:Date.now() };
+  trash.push(copy);
+  tasks = tasks.filter(x => x.id !== id);
+  persist();
+  toast('🗑', `「${t.title}」已移入回收站`, () => {
+    trash = trash.filter(x => x.id !== id);
+    tasks.push({ ...copy, deleted:false, deletedAt:null });
+    persist(); toast('↩️', '已撤销删除');
+  });
+}
+function restoreTask(id) {
+  const t = trash.find(x => x.id === id); if (!t) return;
+  trash = trash.filter(x => x.id !== id);
+  tasks.push({ ...t, deleted:false, deletedAt:null });
+  persist(); toast('↩️', `「${t.title}」已恢复`);
+}
+function permDelete(id) {
+  const t = trash.find(x => x.id === id); if (!t) return;
+  if (!confirm(`永久删除「${t.title}」？此操作不可撤销。`)) return;
+  trash = trash.filter(x => x.id !== id);
+  persist(); toast('💨', '已永久删除');
+}
+function emptyTrash() {
+  if (!trash.length) return;
+  if (!confirm(`永久删除回收站全部 ${trash.length} 个项目？`)) return;
+  trash = []; persist(); toast('🧹', '回收站已清空');
+}
+
+// ============ TOAST ============
+function toast(icon, msg, undoFn=null) {
+  const c = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span>${icon}</span><span style="flex:1">${msg}</span>${undoFn ? '<span class="toast-undo">撤销</span>' : ''}`;
+  if (undoFn) el.querySelector('.toast-undo').onclick = () => { undoFn(); el.remove(); };
+  c.appendChild(el);
+  setTimeout(() => { el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 4500);
+}
+
+// ============ VIEWS ============
+function switchView(view, el) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  curView = view; curCat = null;
+  const TITLES = { all:'全部任务', today:'今日任务', urgent:'紧急事项', matrix:'四象限矩阵', gantt:'时间轴甘特图', trash:'回收站' };
+  document.getElementById('headerTitle').textContent = TITLES[view] || view;
+  const showFilter = !['trash','gantt'].includes(view);
+  document.getElementById('filterBar').style.display = showFilter ? '' : 'none';
+  document.getElementById('addTaskBtn').style.display = view === 'trash' ? 'none' : '';
+  if (view === 'gantt') { dispMode = 'gantt'; syncVBtns('gantt'); }
+  else if (view === 'matrix') { dispMode = 'matrix'; syncVBtns('matrix'); }
+  else { dispMode = 'list'; syncVBtns('list'); }
+  render();
+}
+function switchCat(cat, el) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  curView = 'cat'; curCat = cat;
+  document.getElementById('headerTitle').textContent = CAT[cat];
+  document.getElementById('filterBar').style.display = '';
+  document.getElementById('addTaskBtn').style.display = '';
+  dispMode = 'list'; syncVBtns('list'); render();
+}
+function setFilter(f, el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active'); curFilter = f; render();
+}
+function setDisplayMode(mode, el) { dispMode = mode; syncVBtns(mode); render(); }
+function syncVBtns(mode) {
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  const i = {list:0,matrix:1,gantt:2}[mode]; if (i !== undefined) document.querySelectorAll('.view-btn')[i].classList.add('active');
+}
+
+// ============ FILTER ============
+function getFiltered() {
+  let t = [...tasks];
+  if (curView === 'today') t = t.filter(x => x.startDate <= today() && (!x.deadline || x.deadline >= today()));
+  else if (curView === 'urgent') t = t.filter(x => x.priority === 'p1' || x.priority === 'p3');
+  else if (curView === 'cat') t = t.filter(x => x.cat === curCat);
+  if (curFilter === 'pending') t = t.filter(x => !x.done);
+  else if (curFilter === 'done') t = t.filter(x => x.done);
+  else if (curFilter === 'today-only') t = t.filter(x => x.durationType === 'single');
+  else if (curFilter === 'multiday') t = t.filter(x => x.durationType === 'multi');
+  else if (curFilter === 'collab') t = t.filter(x => x.collabs && x.collabs.length > 0);
+  else if (curFilter === 'overdue') t = t.filter(x => { const d = daysUntil(x.deadline); return d !== null && d < 0 && !x.done; });
+  return t;
+}
+
+// ============ RENDER ============
+function render() {
+  const c = document.getElementById('mainContent');
+  if (curView === 'trash') { renderTrash(c); return; }
+  const f = getFiltered();
+  if (dispMode === 'gantt') renderGantt(c, f);
+  else if (dispMode === 'matrix') renderMatrix(c, f);
+  else renderList(c, f);
+}
+
+// ---- STATS ----
+function renderStats() {
+  const a = tasks, p = a.filter(t=>!t.done).length, d = a.filter(t=>t.done).length;
+  const urg = a.filter(t=>t.priority==='p1'&&!t.done).length;
+  const ov = a.filter(t=>{ const dl=daysUntil(t.deadline); return dl!==null&&dl<0&&!t.done; }).length;
+  const pct = a.length ? Math.round(d/a.length*100) : 0;
+  const cats = Object.keys(CAT);
+  const segs = cats.map(cat => {
+    const n = a.filter(t=>t.cat===cat).length; if(!n) return '';
+    return `<div class="cat-bar-seg" style="flex:${n};background:${CATC[cat]}" title="${CAT[cat]}: ${n}项"></div>`;
+  }).join('');
+  return `<div class="stats-bar">
+    <div class="stat-card" style="--ac:var(--text-muted)"><div class="stat-value">${a.length}</div><div class="stat-label">全部任务</div></div>
+    <div class="stat-card" style="--ac:var(--accent)"><div class="stat-value" style="color:var(--accent)">${p}</div><div class="stat-label">进行中</div></div>
+    <div class="stat-card" style="--ac:var(--q1)"><div class="stat-value" style="color:var(--q1)">${urg}</div><div class="stat-label">重要且紧急</div></div>
+    <div class="stat-card" style="--ac:var(--q2)"><div class="stat-value" style="color:var(--q2)">${ov}</div><div class="stat-label">已逾期</div></div>
+    <div class="stat-card" style="--ac:var(--green)"><div class="stat-value" style="color:var(--green)">${pct}%</div><div class="stat-label">总完成率</div><div class="stat-mini">${d} / ${a.length} 项</div></div>
+  </div><div class="cat-breakdown">${segs}</div>`;
+}
+
+// ---- LIST ----
+function renderList(c, ts) {
+  const sorted = [...ts].sort((a,b) => { if(a.done!==b.done) return a.done?1:-1; return (PORD[a.priority]||0)-(PORD[b.priority]||0); });
+  if (!sorted.length) { c.innerHTML = renderStats() + `<div class="empty-state"><div class="empty-icon">📋</div>暂无任务，点击右上角「新增任务」开始添加</div>`; return; }
+  c.innerHTML = renderStats() + `<div class="list-view">${sorted.map(t=>taskCard(t)).join('')}</div>`;
+}
+
+// ---- MATRIX ----
+function renderMatrix(c, ts) {
+  const q = {p1:[],p2:[],p3:[],p4:[]};
+  ts.forEach(t => (q[t.priority]||q.p4).push(t));
+  const quad = (k,label,sub,cls) => `<div class="matrix-quadrant ${cls}">
+    <div class="quadrant-header"><div class="quadrant-badge"></div><div class="quadrant-label">${label}</div><div class="quadrant-sublabel">${sub} · ${q[k].length}项</div></div>
+    <div class="quadrant-body">${q[k].length ? q[k].map(t=>taskCard(t,true)).join('') : '<div class="empty-state">暂无</div>'}</div>
+  </div>`;
+  c.innerHTML = `<div class="matrix-grid">
+    ${quad('p1','重要且紧急','立即处理','q1')}${quad('p2','重要不紧急','计划安排','q2')}
+    ${quad('p3','紧急不重要','委托他人','q3')}${quad('p4','不紧急不重要','择机处理','q4')}
+  </div>`;
+}
+
+// ---- GANTT ----
+function renderGantt(c, ts) {
+  const DAYS = 60, PAST = 20, CW = 30;
+  const days = [];
+  for (let i = -PAST; i < DAYS - PAST; i++) days.push(addDays(today(), i));
+  const todayI = PAST;
+  const totalW = DAYS * CW;
+
+  // month row
+  let months = [], lastM = '';
+  days.forEach((d, i) => { const m = d.slice(0,7); if (m!==lastM) { months.push({i, label:d.slice(5,7)+'月'}); lastM=m; } });
+  const monthRow = months.map((m, mi) => {
+    const span = ((months[mi+1]?.i ?? DAYS) - m.i) * CW;
+    return `<div class="gantt-month" style="width:${span}px;min-width:${span}px">${m.label}</div>`;
+  }).join('');
+
+  // day header
+  const dayRow = days.map((d, i) => {
+    const dd = toDate(d), isT = d===today(), isW = dd.getDay()===0||dd.getDay()===6;
+    return `<div class="gantt-day${isT?' is-today':''}${isW?' is-weekend':''}" style="width:${CW}px;min-width:${CW}px">${dd.getDate()}</div>`;
+  }).join('');
+
+  // cells bg
+  const cellBg = days.map((d, i) => {
+    const dd = toDate(d), isT = d===today(), isW = dd.getDay()===0||dd.getDay()===6;
+    return `<div class="gantt-cell${isT?' is-today':''}${isW?' is-weekend':''}" style="width:${CW}px;min-width:${CW}px"></div>`;
+  }).join('');
+
+  const allT = [...ts].filter(t => t.deadline).sort((a,b)=>(a.startDate||a.deadline)<(b.startDate||b.deadline)?-1:1);
+
+  function barRow(t) {
+    const s = t.startDate || t.deadline, e = t.deadline;
+    const si = Math.max(0, days.indexOf(s) >= 0 ? days.indexOf(s) : 0);
+    const ei = Math.min(DAYS-1, days.indexOf(e) >= 0 ? days.indexOf(e) : si);
+    if (si > DAYS-1) return '';
+    const left = si * CW, width = Math.max(CW, (ei-si+1)*CW);
+    const tp = t.durationType==='multi' ? (t.progress||0) : (t.done?100:0);
+    const col = CATC[t.cat];
+    const dl = daysUntil(t.deadline);
+    const overdue = dl !== null && dl < 0 && !t.done;
+    const barCol = overdue ? 'rgba(255,107,107,0.75)' : col;
+    const dLeft = dl !== null && dl >= 0 ? `${dl}d` : (dl!==null ? `+${Math.abs(dl)}d` : '');
+    return `<div class="gantt-row">
+      <div class="gantt-label">
+        <span class="cat-dot" style="background:${col}"></span>
+        <span style="cursor:pointer;flex:1;overflow:hidden;text-overflow:ellipsis;${t.done?'opacity:.45;text-decoration:line-through':''}" onclick="openModal('${t.id}')">${t.title}</span>
+        <span style="font-size:9px;font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;color:${overdue?'var(--red)':'var(--text-muted)'};flex-shrink:0">${dLeft}</span>
+      </div>
+      <div class="gantt-track" style="width:${totalW}px;min-width:${totalW}px">
+        ${cellBg}
+        <div class="gantt-bar" style="left:${left}px;width:${width}px;background:${barCol};opacity:${t.done?.45:.88}" onclick="openModal('${t.id}')">
+          <div class="gantt-bar-inner" style="width:${tp}%"></div>
+          <span class="gantt-bar-text">${tp>10?tp+'%':''}</span>
+        </div>
+        <div class="gantt-today-line" style="left:${(todayI+.5)*CW}px"></div>
+      </div>
+    </div>`;
+  }
+
+  const rows = allT.map(barRow).filter(Boolean);
+  c.innerHTML = `<div class="gantt-wrap">
+    <div class="gantt-month-row">${monthRow}</div>
+    <div class="gantt-header-row">${dayRow}</div>
+    ${rows.length ? rows.join('') : '<div class="empty-state"><div class="empty-icon">📅</div>暂无带日期的任务</div>'}
+  </div>`;
+}
+
+// ---- TRASH ----
+function renderTrash(c) {
+  const banner = `<div class="trash-banner">
+    <span style="font-size:18px">🗑</span>
+    <div>回收站中的项目将在 <em>30天</em> 后自动永久删除</div>
+    ${trash.length ? `<button class="btn btn-danger btn-sm" onclick="emptyTrash()" style="margin-left:auto">清空回收站</button>` : ''}
+  </div>`;
+  if (!trash.length) { c.innerHTML = banner + `<div class="empty-state"><div class="empty-icon">✨</div>回收站是空的</div>`; return; }
+  const cards = trash.map(t => {
+    const ago = t.deletedAt ? Math.floor((Date.now()-t.deletedAt)/86400000) : 0;
+    return `<div class="task-card cat-${t.cat}" style="opacity:.5">
+      <div class="task-top">
+        <div class="task-title" style="text-decoration:line-through;flex:1">${t.title}</div>
+        <span class="task-priority ${t.priority}">${{p1:'重要紧急',p2:'重要',p3:'紧急',p4:'低'}[t.priority]}</span>
+        <div class="task-actions" style="opacity:1">
+          <button class="task-action-btn restore" onclick="restoreTask('${t.id}')" title="恢复">↩</button>
+          <button class="task-action-btn del" onclick="permDelete('${t.id}')" title="永久删除">✕</button>
+        </div>
+      </div>
+      <div class="task-meta">
+        <span class="meta-tag"><span class="cat-dot" style="background:${CATC[t.cat]}"></span>${CAT[t.cat]}</span>
+        <span class="meta-tag">🗑 ${ago}天前删除</span>
+        ${t.deadline ? `<span class="meta-tag">截止 ${fmtDate(t.deadline)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  c.innerHTML = banner + `<div class="list-view">${cards}</div>`;
+}
+
+// ---- TASK CARD ----
+function taskCard(t, compact=false) {
+  const dl = daysUntil(t.deadline);
+  let dlCls = '', dlTxt = '';
+  if (t.deadline) {
+    dlTxt = fmtDate(t.deadline);
+    if (dl < 0) { dlCls='urgent'; dlTxt='逾期'+Math.abs(dl)+'天'; }
+    else if (dl === 0) { dlCls='urgent'; dlTxt='今日截止'; }
+    else if (dl <= 3) { dlCls='soon'; dlTxt+=` (${dl}天后)`; }
+  }
+  const avatars = (t.collabs||[]).slice(0,3).map(c=>`<div class="collab-avatar">${c.charAt(0)}</div>`).join('');
+  const extra = (t.collabs||[]).length > 3 ? `<div class="collab-avatar">+${t.collabs.length-3}</div>` : '';
+
+  // Time progress block for multi-day
+  let tpBlock = '';
+  if (t.durationType === 'multi' && !t.done && t.startDate && t.deadline) {
+    const tp = timePct(t.startDate, t.deadline);
+    const pp = t.progress || 0;
+    const dLeft = daysUntil(t.deadline);
+    const totalD = Math.round((toDate(t.deadline) - toDate(t.startDate)) / 86400000) + 1;
+    const ahead = pp >= tp;
+    tpBlock = `<div class="time-progress-wrap">
+      <div class="tp-row"><span>⏱ 时间进度</span><span style="font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace">${tp}%　${dLeft!==null&&dLeft>=0?'剩'+dLeft+'天':'已超时'}／共${totalD}天</span></div>
+      <div class="tp-track"><div class="tp-fill" style="width:${tp}%;background:linear-gradient(90deg,var(--accent),#a07cf7)"></div></div>
+      <div class="tp-row"><span>📊 任务进度</span><span style="color:${ahead?'var(--green)':'var(--q2)'}">${pp}% ${ahead?'▲ 按时推进':'▼ 注意滞后'}</span></div>
+      <div class="tp-track"><div class="tp-fill" style="width:${pp}%;background:${ahead?'var(--green)':'var(--q2)'}"></div></div>
+    </div>`;
+  } else if (t.durationType === 'multi' && t.done) {
+    tpBlock = `<div style="margin-top:8px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden"><div style="height:100%;width:100%;background:var(--green);border-radius:2px"></div></div>`;
+  }
+
+  return `<div class="task-card cat-${t.cat} ${t.done?'done':''}">
+    <div class="task-top">
+      <div class="task-check" onclick="toggleDone(event,'${t.id}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="task-title" onclick="openModal('${t.id}')">${t.title}</div>
+      <span class="task-priority ${t.priority}">${{p1:'紧急重要',p2:'重要',p3:'紧急',p4:'低优'}[t.priority]}</span>
+      <div class="task-actions">
+        <button class="task-action-btn" onclick="openModal('${t.id}')" title="编辑">✎</button>
+        <button class="task-action-btn del" onclick="event.stopPropagation();softDelete('${t.id}')" title="移入回收站">🗑</button>
+      </div>
+    </div>
+    <div class="task-meta">
+      <span class="meta-tag"><span class="cat-dot" style="background:${CATC[t.cat]}"></span>${CAT[t.cat]}</span>
+      ${t.durationType==='multi'?`<span class="tag-multiday">◫ 项目</span>`:`<span class="tag-single">当天</span>`}
+      ${t.deadline?`<span class="meta-tag task-deadline ${dlCls}">⏰ ${dlTxt}</span>`:''}
+      ${(t.collabs&&t.collabs.length)?`<span class="task-collaborators">${avatars}${extra}</span>`:''}
+      ${t.desc?`<span class="meta-tag" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.desc}">💬 ${t.desc}</span>`:''}
+    </div>
+    ${tpBlock}
+  </div>`;
+}
+
+function toggleDone(e, id) {
+  e.stopPropagation();
+  const t = tasks.find(x => x.id === id);
+  if (t) { t.done = !t.done; if(t.done && t.durationType==='multi') t.progress=100; persist(); }
+}
+
+// ============ COUNTS ============
+function updateCounts() {
+  document.getElementById('count-all').textContent = tasks.length;
+  document.getElementById('count-today').textContent = tasks.filter(t=>t.startDate<=today()&&(!t.deadline||t.deadline>=today())).length;
+  document.getElementById('count-urgent').textContent = tasks.filter(t=>(t.priority==='p1'||t.priority==='p3')&&!t.done).length;
+  document.getElementById('count-trash').textContent = trash.length;
+  Object.keys(CAT).forEach(c => { document.getElementById(`count-${c}`).textContent = tasks.filter(t=>t.cat===c).length; });
+}
+
+// ============ SAMPLE DATA ============
+function loadSample() {
+  // 仅首次使用且没有用户数据时才注入示例数据
+  if (hasInited || tasks.length > 0) return;
+  const f = n => addDays(today(), n), p = n => addDays(today(), -n);
+  tasks = [
+    {id:'1',title:'国家自然科学基金申报书',cat:'research',priority:'p1',durationType:'multi',startDate:p(5),deadline:f(5),collabs:['李明','王芳'],progress:40,done:false,desc:'重点项目，需完善研究方案部分',createdAt:Date.now()},
+    {id:'2',title:'修改博士生论文第三章',cat:'research',priority:'p2',durationType:'multi',startDate:p(3),deadline:f(18),collabs:['张强'],progress:55,done:false,desc:'',createdAt:Date.now()},
+    {id:'3',title:'SCI论文修改与投稿',cat:'research',priority:'p2',durationType:'multi',startDate:p(10),deadline:f(20),collabs:[],progress:25,done:false,desc:'',createdAt:Date.now()},
+    {id:'4',title:'准备下周本科课件',cat:'teaching',priority:'p2',durationType:'single',startDate:today(),deadline:f(3),collabs:[],progress:0,done:false,desc:'第八章数据结构与算法',createdAt:Date.now()},
+    {id:'5',title:'批改期中作业',cat:'teaching',priority:'p3',durationType:'single',startDate:today(),deadline:f(2),collabs:['助教小赵'],progress:0,done:false,desc:'',createdAt:Date.now()},
+    {id:'6',title:'参加学院教师大会',cat:'college',priority:'p3',durationType:'single',startDate:today(),deadline:today(),collabs:[],progress:0,done:false,desc:'下午2点，行政楼三楼',createdAt:Date.now()},
+    {id:'7',title:'审阅学科发展规划草稿',cat:'college',priority:'p2',durationType:'single',startDate:today(),deadline:f(7),collabs:[],progress:0,done:false,desc:'',createdAt:Date.now()},
+    {id:'8',title:'市科协学术报告',cat:'social',priority:'p4',durationType:'single',startDate:f(10),deadline:f(10),collabs:[],progress:0,done:false,desc:'',createdAt:Date.now()},
+    {id:'9',title:'企业横向课题季度报告',cat:'parttime',priority:'p1',durationType:'single',startDate:today(),deadline:f(1),collabs:['刘工'],progress:0,done:false,desc:'',createdAt:Date.now()},
+    {id:'10',title:'预约年度体检',cat:'personal',priority:'p4',durationType:'single',startDate:today(),deadline:f(30),collabs:[],progress:0,done:false,desc:'',createdAt:Date.now()},
+    {id:'11',title:'研讨班文献阅读',cat:'research',priority:'p2',durationType:'multi',startDate:p(2),deadline:f(12),collabs:[],progress:70,done:false,desc:'',createdAt:Date.now()},
+    {id:'12',title:'提交教材订购清单（已完成）',cat:'teaching',priority:'p4',durationType:'single',startDate:p(3),deadline:p(1),collabs:[],progress:100,done:true,desc:'',createdAt:Date.now()},
+  ];
+  persist();
+}
+// ============ INIT ============
+initUI(); loadSample(); render(); updateCounts();
+if (!storageOK) {
+  toast('⚠️', '检测到 localStorage 不可用：新增任务可能无法在刷新后保留。');
+}</script>
+</body>
+</html>
